@@ -43,22 +43,22 @@ The scripts in the `./NanoBinner` can run directly without additional compilatio
 
 ## <a name="Usage"></a>Usage
 
-There are two script files in the `NanoBinner` directory. `nanoBinner_10X.py` is used to demultiplex Oxford Nanopore sequencing data derived from 10X Genomics Chromium single cell libraries. There are usually several thousands of barcodes per sample.  `ampBinner.py` is for regular barcoding methods, including barcoding kits provided by Oxford Nanopore Technologies and custom-designed barcodes.
+There are two script files in the `NanoBinner` directory. `nanoBinner_10X.py` is used to demultiplex Oxford Nanopore sequencing data derived from 10X Genomics Chromium single cell libraries. There are usually several thousands of barcodes per sample.  `nanoBinner.py` is for regular barcoding methods, including barcoding kits provided by Oxford Nanopore Technologies and custom-designed barcodes.
 
 ### <a name="Quick_start"></a> Quick start
 
 ```
 # The barcode is beside forward primer
-path/to/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
+path/to/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
 
 # The barcode is beside reverse primer
-path/to/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --rev_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
+path/to/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --rev_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
 
 # The barcodes are on both ends. One sample have the same barcodes on both ends. Only one barcode is required to bin the reads.
-path/to/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
+path/to/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --minimap2 path/to/minimap2
 
 # The barcodes are on both ends. One sample may or may not have the same barcodes on both ends. Two barcodes are required to bin the reads.
-path/to/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 path/to/minimap2
+path/to/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 path/to/minimap2
 
 # Input DNA is from a 10X Genomics single cell library
 /home/fangl/NanoBinner/nanoBinner_10X.py --in_fq example.fastq.gz --barcode_list barcodes.txt --barcode_upstream_seq AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT --out_prefix testing --num_threads 8 
@@ -67,8 +67,8 @@ path/to/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta ex
 ### <a name="Demultiplexing_regular_amplicons"></a> Demultiplexing regular amplicons
 
 ```
-$ ./ampBinner.py --help 
-usage: ampBinner.py [-h] [--in_fq FILE] [--in_fq_list FILE] --amp_seq_fasta
+$ ./nanoBinner.py --help 
+usage: nanoBinner.py [-h] [--in_fq FILE] [--in_fq_list FILE] --amp_seq_fasta
                     FILE --out_dir PATH --exp_name STRING
                     [--fwd_barcode_fasta FILE] [--rev_barcode_fasta FILE]
                     [--require_two_barcodes] [--num_threads INT]
@@ -103,7 +103,7 @@ optional arguments:
 If you have one single input fastq file, you can supply the input with `--in_fq`. 
 If you have multiple fastq files, you can supply a list file with `--in_fq_list`. The list file contains all input fastq files, one file per line. 
 
-`--amp_seq_fasta` is the reference amplicon sequence in FASTA format. Sometimes the barcode sequence is not at the very begining of the long read. Sometimes the first a few bases of a read is truncated. Due to the sequencing error, the barcode matching is flexible and allows some mismatches. **`ampBinner.py` assumes the reference amplicon sequence is known and uses it to distinguish amplicon sequence and barcode sequence, thus eliminates random fuzzy matching inside the amplicon.** 
+`--amp_seq_fasta` is the reference amplicon sequence in FASTA format. Sometimes the barcode sequence is not at the very begining of the long read. Sometimes the first a few bases of a read is truncated. Due to the sequencing error, the barcode matching is flexible and allows some mismatches. **`nanoBinner.py` assumes the reference amplicon sequence is known and uses it to distinguish amplicon sequence and barcode sequence, thus eliminates random fuzzy matching inside the amplicon.** 
 
 `--fwd_barcode_fasta` and `--rev_barcode_fasta` are barcode sequences in FASTA format. If you use the same barcodes on both ends, you can supply `--fwd_barcode_fasta` and `--rev_barcode_fasta` with the same file. An example of `--fwd_barcode_fasta` is shown below. We supplied FASTA files of official barcodes in the `NanoBinner/ONT_barcodes` folder.  
 
@@ -120,7 +120,7 @@ TAGGGAAACACGATAGAATCCGAA
 AAGGTTACACAAACCCTGGACAAG
 ```
 
-`ampBinner.py` supports different barcoding strategies.  
+`nanoBinner.py` supports different barcoding strategies.  
 #### <a name="case1"></a> Case 1. The barcode is next to the forward primer
 
 In this case, the amplicon structure is shown below. 
@@ -129,7 +129,7 @@ In this case, the amplicon structure is shown below.
 You can use the `--fwd_barcode_fasta` argument to supply the barcode FASTA file and use the `--amp_seq_fasta` argument to supply reference amplicon FASTA file. Please note that **the `--amp_seq_fasta` file should INCLUDE the primer sequence but EXCLUDE the barcode sequence**.  An example command is shown below: 
 
 ```
-/home/fangl/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
+/home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
 #### <a name="case2"></a> Case 2. The barcode is next to the reverse primer
@@ -139,7 +139,7 @@ In this case, the amplicon structure is shown below.
 Similar to case 1, you can use the `--rev_barcode_fasta` argument to supply the barcode FASTA file and use the `--amp_seq_fasta` argument to supply reference amplicon FASTA file. Please note that **the `--amp_seq_fasta` file should INCLUDE the primer sequence but EXCLUDE the barcode sequence**.  An example command is shown below: 
 
 ```
-/home/fangl/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --rev_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
+/home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --rev_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
 #### <a name="case3"></a> Case 3. The barcodes are on both ends. One sample have the same barcodes on both ends. Only one barcode is required to bin the reads.
@@ -149,7 +149,7 @@ This might be the most common case. In this case, the amplicon structure is show
 You can supply `--fwd_barcode_fasta` and `--rev_barcode_fasta` with the same file, and use the `--amp_seq_fasta` argument to supply reference amplicon FASTA file. Please note that **the `--amp_seq_fasta` file should INCLUDE the primer sequence but EXCLUDE the barcode sequence**.  An example command is shown below: 
 
 ```
-/home/fangl/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
+/home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
 #### <a name="case4"></a> Case 4. The barcodes are on both ends. One sample may or may not have the same barcodes on both ends. Two barcodes are required to bin the reads.
@@ -159,7 +159,7 @@ This might be the most common case. In this case, the amplicon structure is show
 You can supply `--fwd_barcode_fasta` and `--rev_barcode_fasta` with the barcode FASTA file. The `--fwd_barcode_fasta` and `--rev_barcode_fasta` file may or may not be the same. **You want to use the `--require_two_barcodes` option to specify that two barcodes are required to bin the reads.**  You can use the `--amp_seq_fasta` argument to supply reference amplicon FASTA file. Please note that **the `--amp_seq_fasta` file should INCLUDE the primer sequence but EXCLUDE the barcode sequence**.  An example command is shown below: 
 
 ```
-/home/fangl/NanoBinner/ampBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
+/home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
 ### <a name="tenx"></a> Demultiplexing 10X Genomics Chromium Single Cell 3ʹ Gene Expression Libraries
