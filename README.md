@@ -42,7 +42,6 @@ The scripts in the `./NanoBinner` can run directly without additional compilatio
 
 ## <a name="Usage"></a>Usage
 
-There are two script files in the `NanoBinner` directory. `nanoBinner_10X.py` is used to demultiplex Oxford Nanopore sequencing data derived from 10X Genomics Chromium single cell libraries. There are usually several thousands of barcodes per sample.  `nanoBinner.py` is for regular barcoding methods, including barcoding kits provided by Oxford Nanopore Technologies and custom-designed barcodes.
 
 ### <a name="Quick_start"></a> Quick start
 
