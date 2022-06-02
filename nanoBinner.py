@@ -92,11 +92,11 @@ def main():
         sys.exit()
 
 
-    AmpliconBinner(input_args)
+    NanoBinner(input_args)
 
     return
 
-def AmpliconBinner(input_args):
+def NanoBinner(input_args):
 
     minimap2                 = input_args.minimap2
     amplicon_seq_fasta_file  = input_args.amp_seq_fasta
@@ -385,7 +385,7 @@ def check_fwd_rev_barcodes(fwd_barcode_info, rev_barcode_info):
 def demultiplex1side(barcode_info, in_fastq_file, minimap2, n_threads, out_prefix):
     
     tmp_out_prefix  = out_prefix + '.tmp.%s' % barcode_info.side
-    read_tail_add_length  = 256
+    #read_tail_add_length  = 256
     barcode_length = len(barcode_info.barcode_seq_list[0])
 
     barcode_plus_seq_file = tmp_out_prefix + '.barcode_plus%dbp.fasta' % barcode_info.anchor_seq_len
@@ -399,7 +399,8 @@ def demultiplex1side(barcode_info, in_fastq_file, minimap2, n_threads, out_prefi
     tk.eprint('NOTICE: reads shorter than %d bp would be skipped' % min_read_length)
     tk.eprint('NOTICE: reads longer  than %d bp would be skipped' % max_read_length)
 
-    read_tail_length = barcode_length + barcode_info.anchor_seq_len + read_tail_add_length
+    #read_tail_length = barcode_length + barcode_info.anchor_seq_len + read_tail_add_length
+    read_tail_length = barcode_length + barcode_info.anchor_seq_len
 
     left_tail_fastq_file    = '%s.left%dbp_tail.fastq'  % (tmp_out_prefix, read_tail_length)
     right_tail_fastq_file   = '%s.right%dbp_tail.fastq' % (tmp_out_prefix, read_tail_length)
@@ -409,10 +410,10 @@ def demultiplex1side(barcode_info, in_fastq_file, minimap2, n_threads, out_prefi
     left_tail_sam_file    = '%s.left%dbp_tail.sam'  % (tmp_out_prefix, read_tail_length)
     right_tail_sam_file   = '%s.right%dbp_tail.sam' % (tmp_out_prefix, read_tail_length)
    
-    cmd = '%s -N 400 --cs -t %d -a -x map-ont %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, left_tail_fastq_file, left_tail_sam_file)
+    cmd = '%s -N 400 --cs -t %d -a -k 3 -w 2 -n 1 -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, left_tail_fastq_file, left_tail_sam_file)
     tk.run_system_cmd(cmd)
 
-    cmd = '%s -N 400 --cs -t %d -a -x map-ont %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, right_tail_fastq_file, right_tail_sam_file)
+    cmd = '%s -N 400 --cs -t %d -a -k 3 -w 2 -n 1 -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, right_tail_fastq_file, right_tail_sam_file)
     tk.run_system_cmd(cmd)
 
     barcode_info.read_barcode_idx_dict  = dict() # read_barcode_idx_dict[readname] = barcode_idx
@@ -496,6 +497,9 @@ def preprocessing_input_files(in_fq, in_fq_list, tmp_out_prefix):
         raw_input_fq_list.append(in_fq)
     if in_fq_list != '': 
         raw_input_fq_list = tk.read_list_file(in_fq_list, abspath = True)
+
+    for fq_file in raw_input_fq_list:
+        tk.eprint(f'input fq file:{fq_file}')
 
     fastq_file_list = tk.split_fastq(raw_input_fq_list, 1, tmp_out_prefix) # 1. split 2. remove duplicates
     in_fastq_file = fastq_file_list[0]
@@ -636,7 +640,7 @@ class BarcodeInfo:
         self.side = ''
         self.barcode_name_list = list()
         self.barcode_seq_list = list()
-        self.anchor_seq_len = 256
+        self.anchor_seq_len = 64
         self.barcode_plus_seq_to_barcode_idx_dict = dict()
         self.read_barcode_idx_dict = dict()
         return

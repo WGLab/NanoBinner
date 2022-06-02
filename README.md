@@ -3,7 +3,7 @@
 ## Features
 - NanoBinner uses the sequence upstream/downstream of the barcode (i.e. anchor) to help locate barcode position and eliminates random matching due to sequencing error.
 - NanoBinner does not require a pretrained model for demultiplexing and supports officially provided barcodes as well as custom-designed barcodes.
-- NanoBinner is able to demultiplex Oxford Nanopore sequencing data generated from **10X Genomics Chromium Single Cell 3ʹ Gene Expression Libraries**. 
+
 
 ## Table of Contents
 
@@ -16,12 +16,11 @@
     - [Case 2: The barcode is next to the reverse primer](#case2)
     - [Case 3: The barcodes are on both ends. One sample have the same barcodes on both ends. Only one barcode is required to bin the reads.](#case3)
     - [Case 4: The barcodes are on both ends. One sample may or may not have the same barcodes on both ends. Two barcodes are required to bin the reads.](#case4)
-  - [Demultiplexing 10X Genomics Chromium Single Cell 3ʹ Gene Expression Libraries](#tenx)
 
 
 ## <a name="Requirements"></a>Requirements
 - Operating system: Linux or macOS
-- [Python](https://www.python.org/) 2.7 or later
+- [Python](https://www.python.org/) 3.6 or later
 - [minimap2](https://github.com/lh3/minimap2) 2.8 or later
 
 ## <a name="Installation"></a>Installation
@@ -30,9 +29,9 @@ NanoBinner calls `minimap2` to do sequence alignment. If you don't have `minimap
 If you are using Linux, you can acquire precompiled binaries using the following commands:
 
 ```
-wget https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2
-tar -jxvf minimap2-2.17_x64-linux.tar.bz2
-./minimap2-2.17_x64-linux/minimap2
+wget https://github.com/lh3/minimap2/releases/download/v2.24/minimap2-2.24_x64-linux.tar.bz2
+tar -jxvf minimap2-2.24_x64-linux.tar.bz2
+./minimap2-2.24_x64-linux/minimap2
 ```
 
 Next, you can clone the repository of NanoBinner using the following command.
@@ -162,68 +161,5 @@ You can supply `--fwd_barcode_fasta` and `--rev_barcode_fasta` with the barcode 
 /home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
-### <a name="tenx"></a> Demultiplexing 10X Genomics Chromium Single Cell 3ʹ Gene Expression Libraries
-A 10X Genomics Chromium Single Cell 3ʹ Gene Expression Library often has several thousands of cellular barcodes. NanoBinner uses the sequence upstream of the barcode to help locate barcode position and eliminates random matching due to sequencing error. We provided a separate script file `nanoBinner_10X.py` for 10X single cell libraries. The structure of the 10X Genomics single cell library is shown below. 
-<p align="center"><img src="images/10X_lib.png" width="100%"></p>
-
-```
-$ ./nanoBinner_10X.py --help 
-usage: nanoBinner_10X.py [-h] [--in_fq FILE] [--in_fq_list FILE] --barcode_list
-                        FILE --barcode_upstream_seq STRING --out_prefix PATH
-                        [--num_threads INT] [--minimap2 FILE] [--version]
-
-A barcode demultiplexer for Oxford Nanopore long-read sequencing data with 10X
-Genomics Chromium barcodes
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --in_fq FILE          input sequencing reads in one FASTQ(.gz) file
-  --in_fq_list FILE     a list file specifying all input FASTQ(.gz) files, one
-                        file per line
-  --barcode_list FILE   a list file of all barcode sequences, one barcode
-                        sequence per line, no barcode name
-  --barcode_upstream_seq STRING
-                        known upstream sequence of the barcode
-  --out_prefix PATH     prefix of output files
-  --num_threads INT     number of threads (default: 1)
-  --minimap2 FILE       path to minimap2 (default: using environment default)
-  --version             show program's version number and exit
-```
-
-If you have one single input fastq file, you can supply the input with `--in_fq`. 
-If you have multiple fastq files, you can supply a list file with `--in_fq_list`. The list file contains all input fastq files, one file per line. 
-
-The barcode upstream sequence can be supplied with the `--barcode_upstream_seq` argument. It can be either the TruSeq Read1 sequence or the concatenation of the P5 sequence and the TruSeq Read1 sequence. 
-
-The barcode list file is supplied via the `--barcode_list` argument. The barcode list file should contain all barcodes of the specific sample, one barcode sequence per line (No barcode name). An example of the barcode list file is shown below. 
-
-
-```
-AAACCCACACATCATG
-AAACCCACATCATTGG
-AAACCCAGTAGTTCCA
-AAACCCAGTCGTTATG
-AAACCCAGTGCGGATA
-AAACCCAGTTCTTAGG
-AAACCCATCATGAGTC
-AAACCCATCTACTCAT
-AAACGAAAGGTAGTAT
-AAACGAACAACCCTAA
-```
-
-An example command is: 
-
-```
-/home/fangl/NanoBinner/nanoBinner_10X.py --in_fq example.fastq.gz --barcode_list barcodes.txt --barcode_upstream_seq AATGATACGGCGACCACCGAGATCTACACTCTTTCCCTACACGACGCTCTTCCGATCT --out_prefix testing --num_threads 8 
-```
-
-`nanoBinner_10X.py` will generate 3 files: `testing.demultiplexing.PASS.reads.txt`, `testing.demultiplexing.statistics.txt` and `testing.all_reads.txt`.
-
-`testing.demultiplexing.PASS.reads.txt` contains the barcodes of QC-passed reads. 
-`testing.all_reads.txt` contains the barcodes of all reads (including QC-passed and QC-failed reads). 
-`testing.demultiplexing.statistics.txt` is a summary file with number of reads per barcode. 
-
-#### Limitation
-`nanoBinner_10X.py` has been tested samples with less than 10,000 barcodes. You'd better have a short-read 10X Genomics sequencing data so that you can narrow down the barcode list to a few thousand. `nanoBinner_10X.py` will not work well on a large barcode list (e.g. the complete barcode list which has > 1 million barcodes).  
 
 

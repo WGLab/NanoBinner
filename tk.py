@@ -146,7 +146,7 @@ def split_fastq(in_fastq_file_list, num_out_file, out_prefix):
             if not line3: break
             if not line4: break
 
-            if line1[0] != '@' or len(line2) != len(line4) or line3.strip() != '+':
+            if line1[0] != '@' or len(line2) != len(line4):
                 eprint('ERROR! Bad fastq file: %s' % in_fastq_file)
                 break
                 
@@ -186,7 +186,7 @@ def extract_fastq_tail_seq(in_fastq_file, read_tail_length, left_tail_fastq_file
         if not line3: break
         if not line4: break
 
-        if line1[0] != '@' or len(line2) != len(line4) or line3.strip() != '+':
+        if line1[0] != '@' or len(line2) != len(line4):
             eprint('ERROR! bad fastq record: ')
             eprint(line1 + line2 + line3 + line4)
             sys.exit()
