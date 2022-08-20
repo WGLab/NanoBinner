@@ -27,6 +27,7 @@ SOFTWARE.
 '''
 
 
+from ctypes import alignment
 import os
 import sys
 import gzip
@@ -158,8 +159,8 @@ def NanoBinner(input_args):
         out_fastq_file_list = output_binned_reads_both2(in_fastq_file, fwd_barcode_info, rev_barcode_info, both2_out_prefix)
         remove_empty_out_fastq_file(out_fastq_file_list)
    
-    cmd = 'rm %s*' % tmp_out_prefix
-    tk.run_system_cmd(cmd)
+    #cmd = 'rm %s*' % tmp_out_prefix
+    #tk.run_system_cmd(cmd)
 
     return
 
@@ -176,7 +177,7 @@ def remove_empty_out_fastq_file(out_fastq_file_list):
             try: 
                 os.remove(out_fastq_file)
             except:
-                eprint('WARNING: failed to remove empty file: %s' % out_fastq_file)
+                tk.eprint('WARNING: failed to remove empty file: %s' % out_fastq_file)
     return
 
 def output_binned_reads_both2(in_fastq_file, fwd_barcode_info, rev_barcode_info, out_prefix):
@@ -186,7 +187,7 @@ def output_binned_reads_both2(in_fastq_file, fwd_barcode_info, rev_barcode_info,
     summary_file             = out_prefix + '.summary.txt'
 
     readname_to_sample_idx_dict = dict()
-    sample_read_count_dict = dict()
+    sample_read_count_dict      = dict()
 
     out_fastq_file_list = list()
     sample_idx = -1
@@ -385,7 +386,7 @@ def check_fwd_rev_barcodes(fwd_barcode_info, rev_barcode_info):
 def demultiplex1side(barcode_info, in_fastq_file, minimap2, n_threads, out_prefix):
     
     tmp_out_prefix  = out_prefix + '.tmp.%s' % barcode_info.side
-    #read_tail_add_length  = 256
+    read_tail_add_length  = 50
     barcode_length = len(barcode_info.barcode_seq_list[0])
 
     barcode_plus_seq_file = tmp_out_prefix + '.barcode_plus%dbp.fasta' % barcode_info.anchor_seq_len
@@ -399,29 +400,61 @@ def demultiplex1side(barcode_info, in_fastq_file, minimap2, n_threads, out_prefi
     tk.eprint('NOTICE: reads shorter than %d bp would be skipped' % min_read_length)
     tk.eprint('NOTICE: reads longer  than %d bp would be skipped' % max_read_length)
 
-    #read_tail_length = barcode_length + barcode_info.anchor_seq_len + read_tail_add_length
-    read_tail_length = barcode_length + barcode_info.anchor_seq_len
+    read_tail_length = barcode_length + barcode_info.anchor_seq_len + read_tail_add_length
 
     left_tail_fastq_file    = '%s.left%dbp_tail.fastq'  % (tmp_out_prefix, read_tail_length)
     right_tail_fastq_file   = '%s.right%dbp_tail.fastq' % (tmp_out_prefix, read_tail_length)
 
     extract_fastq_tail_seq (in_fastq_file, read_tail_length, min_read_length, max_read_length, left_tail_fastq_file, right_tail_fastq_file)
 
-    left_tail_sam_file    = '%s.left%dbp_tail.sam'  % (tmp_out_prefix, read_tail_length)
-    right_tail_sam_file   = '%s.right%dbp_tail.sam' % (tmp_out_prefix, read_tail_length)
+    left_tail_paf_file    = '%s.left%dbp_tail.paf'  % (tmp_out_prefix, read_tail_length)
+    right_tail_paf_file   = '%s.right%dbp_tail.paf' % (tmp_out_prefix, read_tail_length)
    
-    cmd = '%s -N 400 --cs -t %d -a -k 3 -w 2 -n 1 -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, left_tail_fastq_file, left_tail_sam_file)
+    cmd = '%s  -c -t %d -x map-ont -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, left_tail_fastq_file, left_tail_paf_file)
     tk.run_system_cmd(cmd)
 
-    cmd = '%s -N 400 --cs -t %d -a -k 3 -w 2 -n 1 -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, right_tail_fastq_file, right_tail_sam_file)
+    cmd = '%s -c -t %d -x map-ont -m 10 -s 10 %s %s > %s 2> /dev/null' % (minimap2, n_threads, barcode_plus_seq_file, right_tail_fastq_file, right_tail_paf_file)
     tk.run_system_cmd(cmd)
 
-    barcode_info.read_barcode_idx_dict  = dict() # read_barcode_idx_dict[readname] = barcode_idx
-    extract_confident_reads_from_sam (left_tail_sam_file,  barcode_length, barcode_info.barcode_plus_seq_to_barcode_idx_dict, barcode_info.read_barcode_idx_dict)
-    extract_confident_reads_from_sam (right_tail_sam_file, barcode_length, barcode_info.barcode_plus_seq_to_barcode_idx_dict, barcode_info.read_barcode_idx_dict)
+    left_tail_sorted_paf_file = left_tail_paf_file + '.sorted.paf'
+    right_tail_sorted_paf_file = right_tail_paf_file + '.sorted.paf'
 
-    cmd = 'rm %s*' % tmp_out_prefix
+    cmd  = f'sort -k1,1 -k12,12nr {left_tail_paf_file} > {left_tail_sorted_paf_file}'
     tk.run_system_cmd(cmd)
+    cmd  = f'sort -k1,1 -k12,12nr {right_tail_paf_file} > {right_tail_sorted_paf_file}'
+    tk.run_system_cmd(cmd)
+
+    left_tail_read_barcode_idx_dict = dict()
+    right_tail_read_barcode_idx_dict = dict()
+    left_tail_align_score_dict = dict()
+    right_tail_align_score_dict = dict()
+    left_tail_mapq_dict = dict()
+    right_tail_mapq_dict = dict()
+    extract_main_aligned_reads_from_paf (left_tail_sorted_paf_file,  barcode_length, barcode_info.anchor_seq_len, barcode_info.barcode_plus_seq_to_barcode_idx_dict, left_tail_read_barcode_idx_dict, left_tail_align_score_dict, left_tail_mapq_dict)
+    extract_main_aligned_reads_from_paf (right_tail_sorted_paf_file, barcode_length, barcode_info.anchor_seq_len, barcode_info.barcode_plus_seq_to_barcode_idx_dict, right_tail_read_barcode_idx_dict, right_tail_align_score_dict, right_tail_mapq_dict)
+    barcode_info.read_barcode_idx_dict = dict()
+
+    min_align_score_diff = 20
+    min_mapq = 20
+    for readname in left_tail_align_score_dict:
+        if readname not in right_tail_align_score_dict:
+            if left_tail_mapq_dict[readname] >= min_mapq and left_tail_align_score_dict[readname] > min_align_score_diff:
+                barcode_info.read_barcode_idx_dict[readname] = left_tail_read_barcode_idx_dict[readname]
+        else:
+            left_tail_align_score = left_tail_align_score_dict[readname]
+            right_tail_align_score = right_tail_align_score_dict[readname]
+            if left_tail_align_score >= right_tail_align_score + min_align_score_diff and left_tail_align_score >= min_align_score_diff:
+                if left_tail_mapq_dict[readname] >= min_mapq: barcode_info.read_barcode_idx_dict[readname] = left_tail_read_barcode_idx_dict[readname]
+            elif right_tail_align_score >= left_tail_align_score + min_align_score_diff and right_tail_align_score >= min_align_score_diff:
+                if right_tail_mapq_dict[readname] >= min_mapq: barcode_info.read_barcode_idx_dict[readname] = right_tail_read_barcode_idx_dict[readname]
+          
+    for readname in right_tail_read_barcode_idx_dict:
+        if readname not in left_tail_read_barcode_idx_dict:
+            if right_tail_mapq_dict[readname] >= min_mapq and right_tail_align_score_dict[readname] > min_align_score_diff:
+                barcode_info.read_barcode_idx_dict[readname] = right_tail_read_barcode_idx_dict[readname]
+    
+    #cmd = 'rm %s*' % tmp_out_prefix
+    #tk.run_system_cmd(cmd)
     return
 
 def output_binned_reads_for1side(in_fastq_file, barcode_info, out_prefix):
@@ -523,40 +556,35 @@ def generate_barcode_plus_tail_file(barcode_info, barcode_plus_seq_file):
 
     return
 
-def extract_confident_reads_from_sam (in_sam_file, barcode_length, barcode_plus_seq_to_barcode_idx_dict, read_barcode_idx_dict):
+def extract_main_aligned_reads_from_paf (in_paf_file, barcode_length, anchor_seq_len, barcode_plus_seq_to_barcode_idx_dict, read_barcode_idx_dict, align_score_dict, mapq_dict):
 
-    min_mapq = 20
-
-    in_sam_fp = open(in_sam_file, 'r')
+    in_paf_fp = open(in_paf_file, 'r')
     num_error_alignments = 0
     num_aligned_reads = 0
-    num_unmapped_reads = 0
 
+    processed_readnames = set()
     while 1:
-        line = in_sam_fp.readline()
+        line = in_paf_fp.readline()
         if not line: break
-        if line[0] == '@': continue
 
-        line = line.strip().split('\t')
-        if len(line) < 6:
+        col_list = line.strip().split('\t')
+        if len(line) < 12:
             num_error_alignments += 1
             continue
-        readname, flag, contig, left_pos, mapq = line[0:5]
-        
-        flag = int(flag)
-        if flag & 4:
-            num_unmapped_reads += 1
-            continue
+        readname = col_list[0]
 
-        if flag & 256 or flag & 1024 or flag & 2048: continue
-        
+        if readname in processed_readnames: continue
+        processed_readnames.add(readname)
+    
+        contig   = col_list[5]
+        start_pos_on_contig = int(col_list[7])
+        end_pos_on_contig = int(col_list[8])
+        mapq = int(col_list[11])
+        align_score = get_alignment_score_from_paf(col_list)
         num_aligned_reads += 1
 
-        mapq = int(mapq)
-        if mapq < min_mapq: continue
-
-        left_pos = int(left_pos)
-        if left_pos >= barcode_length: continue
+        if start_pos_on_contig * 2 > barcode_length or end_pos_on_contig < barcode_length + max(anchor_seq_len*0.5, anchor_seq_len - 10):
+            mapq = 0
         
         if contig in barcode_plus_seq_to_barcode_idx_dict:
             barcode_idx = barcode_plus_seq_to_barcode_idx_dict[contig]
@@ -564,14 +592,25 @@ def extract_confident_reads_from_sam (in_sam_file, barcode_length, barcode_plus_
             tk.eprint('ERROR!! unknown template name in sam: %s' % contig)
             num_error_alignments += 1
             continue
-
+        
         read_barcode_idx_dict[readname] = barcode_idx
+        align_score_dict[readname] = align_score
+        mapq_dict[readname] = mapq
 
-    in_sam_fp.close()
+    in_paf_fp.close()
 
-    tk.eprint('STATISTICS: sam_file = %s, num_aligned_reads = %d, num_unmapped_reads = %d, num_of_confident_reads = %d' % (in_sam_file, num_aligned_reads, num_unmapped_reads, len(read_barcode_idx_dict) ))
+    tk.eprint('STATISTICS: paf_file = %s, num_aligned_reads = %d' % (in_paf_file, num_aligned_reads))
 
-    return 
+    return
+
+def get_alignment_score_from_paf(col_list):
+
+    align_score = 0
+    for col in col_list[12:]:
+        if col[0:5] == 'AS:i:':
+            align_score = int(col[5:])
+            return align_score
+    return align_score
 
 def extract_fastq_tail_seq(in_fastq_file, read_tail_length, min_read_length, max_read_length, left_tail_fastq_file, right_tail_fastq_file):
 
@@ -640,7 +679,8 @@ class BarcodeInfo:
         self.side = ''
         self.barcode_name_list = list()
         self.barcode_seq_list = list()
-        self.anchor_seq_len = 64
+        self.anchor_seq_len = None
+        self.barcode_len = None
         self.barcode_plus_seq_to_barcode_idx_dict = dict()
         self.read_barcode_idx_dict = dict()
         return
@@ -652,6 +692,12 @@ class BarcodeInfo:
         self.side = barcode_side
 
         self.barcode_name_list, self.barcode_seq_list = tk.read_fasta_file(barcode_fasta_file)
+        if len(self.barcode_seq_list) == 0:
+            tk.eprint(f'ERROR! No barcodes were found in file: {barcode_fasta_file}')
+            sys.exit()
+        else:
+            tk.eprint(f'NOTICE: {len(self.barcode_seq_list) } barcodes were found in file: {barcode_fasta_file}')
+        
         fasta_name_list, fasta_seq_list = tk.read_fasta_file(amplicon_seq_fasta_file)
         if len(fasta_name_list) > 1:
             tk.eprint('ERROR: There are more than 1 sequence in the amp_seq_fasta file: %s' % amplicon_seq_fasta_file)
@@ -663,6 +709,8 @@ class BarcodeInfo:
             tk.eprint('ERROR: No sequence was found in the amp_seq_fasta file: %s' % amplicon_seq_fasta_file)
             sys.exit()
 
+        self.barcode_len = len(self.barcode_seq_list[0])
+        self.anchor_seq_len = self.barcode_len * 2
         if barcode_side == 'fwd':
             self.downstream_seq = self.amplicon_seq[0:self.anchor_seq_len]
         elif barcode_side == 'rev':
