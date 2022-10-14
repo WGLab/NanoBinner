@@ -16,7 +16,7 @@
     - [Case 2: The barcode is next to the reverse primer](#case2)
     - [Case 3: The barcodes are on both ends. One sample have the same barcodes on both ends. Only one barcode is required to bin the reads.](#case3)
     - [Case 4: The barcodes are on both ends. One sample may or may not have the same barcodes on both ends. Two barcodes are required to bin the reads.](#case4)
-
+- [Citation](#Citation)
 
 ## <a name="Requirements"></a>Requirements
 - Operating system: Linux or macOS
@@ -160,5 +160,24 @@ You can supply `--fwd_barcode_fasta` and `--rev_barcode_fasta` with the barcode 
 /home/fangl/NanoBinner/nanoBinner.py --in_fq example_data.fastq.gz --amp_seq_fasta example_amplicon_seq.fasta --out_dir . --exp_name testing --num_threads 4 --fwd_barcode_fasta example_barcodes.fasta --rev_barcode_fasta example_barcodes.fasta --require_two_barcodes --minimap2 /home/fangl/software/minimap2-2.8_x64-linux/minimap2
 ```
 
+## <a name="Citation"></a>Citation
 
+If you use NanoBinner, please cite:
 
+Li Fang, Alex Mas Monteys, Alexandra Dürr, Megan Keiser, Congsheng Cheng, Akhil Harapanahalli, Pedro Gonzalez-Alegre, Beverly L. Davidson, Kai Wang. Haplotyping SNPs for allele-specific gene editing of the expanded huntingtin allele using long-read sequencing. Human Genetics and Genomics Advances, 2022, DOI: https://doi.org/10.1016/j.xhgg.2022.100146.
+
+BibTeX format:
+
+```
+@article{FANG2022100146,
+title    = {Haplotyping SNPs for allele-specific gene editing of the expanded huntingtin allele using long-read sequencing},
+journal  = {Human Genetics and Genomics Advances},
+pages    = {100146},
+year     = {2022},
+issn     = {2666-2477},
+doi      = {https://doi.org/10.1016/j.xhgg.2022.100146},
+url      = {https://www.sciencedirect.com/science/article/pii/S266624772200063X},
+author   = {Li Fang and Alex Mas Monteys and Alexandra Dürr and Megan Keiser and Congsheng Cheng and Akhil Harapanahalli and Pedro Gonzalez-Alegre and Beverly L. Davidson and Kai Wang},
+keywords = {Huntington's disease, long-read sequencing, CRISPR, SNP, repeat detection}
+}
+```
